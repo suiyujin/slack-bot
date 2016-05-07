@@ -6,3 +6,5 @@ gem 'pry-byebug'
 
 gem 'sinatra'
 gem 'unicorn'
+
+gem 'nokogiri'
