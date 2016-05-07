@@ -18,8 +18,10 @@ class BusBot < Bot
     res = buses.flatten.select { |bus| bus.time > @specified_time }.sort_by(&:time)[0...10]
 
     # TODO: もうバスが無い場合はメッセージを返す
-    # TODO: Slack用のレスポンスにする
-    {text: res}.to_json
+    res_str = res.map do |bus|
+      "#{bus.time.strftime('%H:%M')} [#{bus.code}] #{bus.name}\n(#{bus.terminal_num}番乗り場 / 降車：#{bus.exit_stop})"
+    end.join("\n\n")
+    {text: res_str}.to_json
   end
 
   def scrape_timetable(bus_list)
