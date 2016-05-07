@@ -5,10 +5,6 @@ require 'pry'
 require 'json'
 
 class SlackBot < Sinatra::Base
-  before do
-    @params = JSON.parse(request.body.read)
-  end
-
   post '/slack' do
     bot = get_instance
 
