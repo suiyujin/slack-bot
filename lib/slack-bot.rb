@@ -11,9 +11,9 @@ class SlackBot < Sinatra::Base
 
   post '/slack' do
     bot = get_instance
-    res = bot.create_response
 
-    { message: "Hello, #{@params['name']}!" }.to_json
+    content_type :json
+    bot.create_response
   end
 
   def get_instance
