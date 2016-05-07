@@ -9,3 +9,4 @@ gem 'unicorn'
 
 gem 'nokogiri'
 gem 'activesupport'
+gem 'holiday_japan'
