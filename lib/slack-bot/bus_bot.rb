@@ -6,9 +6,23 @@ require 'open-uri'
 require 'yaml'
 require 'active_support'
 require 'active_support/core_ext'
+require 'holiday_japan'
 
 class BusBot < Bot
   def create_response
+    # TODO: textからtimeを設定できるように
+    @specified_time = Time.now
+
+    # 平日or土曜or日祝を判断
+    @date_flag = ''
+    if HolidayJapan.check(Date.parse(@specified_time.to_s)) || @specified_time.sunday?
+      @date_flag = 'snd'
+    elsif @specified_time.saturday?
+      @date_flag = 'std'
+    else
+      @date_flag = 'wkd'
+    end
+
     bus_lists = YAML.load_file("#{File.expand_path(File.dirname(__FILE__)).sub(/lib\/slack-bot/, 'config')}/bus.yml")['bus_lists']
     buses = []
     bus_lists.each do |bus_list|
@@ -21,6 +35,7 @@ class BusBot < Bot
     res_str = res.map do |bus|
       "#{bus.time.strftime('%H:%M')} [#{bus.code}] #{bus.name}\n(#{bus.terminal_num}番乗り場 / 降車：#{bus.exit_stop})"
     end.join("\n\n")
+
     {text: res_str}.to_json
   end
 
@@ -51,7 +66,7 @@ class BusBot < Bot
         next if bus_time <= (@specified_time - 1.hour)
       end
 
-      buses << hour_list.next.next.xpath('div[@class="diagram-item"]').map do |minute|
+      buses << get_date_list(hour_list).xpath('div[@class="diagram-item"]').map do |minute|
         midnight = false
 
         mark = remove_tab_and_newline(minute.xpath('div[@class="mark"]/div[@class="top"]').text)
@@ -79,7 +94,22 @@ class BusBot < Bot
 
   private
 
+  def get_date_list(hour_list)
+    case @date_flag
+    when 'wkd' then
+      hour_list.next.next
+    when 'std' then
+      hour_list.next.next.next.next
+    when 'snd' then
+      hour_list.next.next.next.next.next.next
+    end
+  end
+
   def remove_tab_and_newline(text)
     text.gsub(/\t/, '').gsub(/\n/, '')
+  end
+
+  def over_date?
+    [0, 1, 2].include?(@specified_time.hour)
   end
 end
