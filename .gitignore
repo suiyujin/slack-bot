@@ -51,3 +51,4 @@ build-iPhoneSimulator/
 .rvmrc
 
 config/
+log/
