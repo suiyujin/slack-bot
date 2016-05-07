@@ -1,5 +1,5 @@
 class Bus
-  attr_reader :time
+  attr_reader :code, :terminal_num, :name, :exit_stop, :time, :midnight
 
   def initialize(code, terminal_num, bus_type, mark, time, midnight)
     @code = code
