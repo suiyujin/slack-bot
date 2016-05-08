@@ -149,7 +149,8 @@ class BusBot < Bot
       # 00:00〜02:59の場合は前の日とする
       [0, 1, 2].include?(hour.to_i) ? time.yesterday : time
     else
-      now
+      # 00:00〜02:59の場合は前の日とする
+      [0, 1, 2].include?(now.hour.to_i) ? now.yesterday : now
     end
   end
 
