@@ -22,7 +22,8 @@ class BusBot < Bot
       @date_flag = 'wkd'
     end
 
-    bus_lists = YAML.load_file("#{File.expand_path(File.dirname(__FILE__)).sub(/lib\/slack-bot/, 'config')}/bus.yml")['bus_lists']
+    config_bus = YAML.load_file("#{File.expand_path(File.dirname(__FILE__)).sub(/lib\/slack-bot/, 'config')}/bus.yml")
+    bus_lists = config_bus['bus_lists']
     buses = []
     bus_lists.each do |bus_list|
       buses << scrape_timetable(bus_list)
@@ -31,7 +32,7 @@ class BusBot < Bot
     res_buses = buses.flatten.select { |bus| bus.time > @specified_time }.sort_by(&:time)[0...10]
 
     headline_time = over_date? ? @specified_time.tomorrow : @specified_time
-    res_header = "*#{headline_time.strftime('%Y/%m/%d %H:%M')}以降のバス*\n\n"
+    res_header = "*#{headline_time.strftime('%Y/%m/%d %H:%M')}以降のバス*\n#{config_bus['map_bus_mitaka_image_url']}\n\n"
     res = if res_buses.empty?
             message = '※これ以降のバスはありません'
             unless buses.flatten.empty?
