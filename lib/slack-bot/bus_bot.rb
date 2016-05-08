@@ -79,10 +79,8 @@ class BusBot < Bot
       buses << get_date_list(hour_list).xpath('div[@class="diagram-item"]').map do |minute|
         midnight = false
 
-        mark = remove_tab_and_newline(minute.xpath('div[@class="mark"]/div[@class="top"]').text)
-        if mark.match(/\A深(.+)/)
-          midnight, mark = [true, $1]
-        end
+        mark = remove_tab_and_newline(minute.xpath('div[@class="mark" or @class="mark threeString"]/div[@class="top"]').text)
+        midnight, mark = [true, $1] if mark.match(/\A深(.+)/)
 
         mm = remove_tab_and_newline(minute.xpath('div[@class="mm"]').text)
 
