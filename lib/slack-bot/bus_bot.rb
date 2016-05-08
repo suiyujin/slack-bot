@@ -113,6 +113,8 @@ class BusBot < Bot
       hour, minute = @text.match(/(\d{2}):(\d{2})/) ? [$1, $2] : [now.hour, now.min]
 
       Time.new(year, month, day, hour, minute)
+    else
+      now
     end
   end
 
