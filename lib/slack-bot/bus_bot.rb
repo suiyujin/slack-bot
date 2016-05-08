@@ -61,8 +61,9 @@ class BusBot < Bot
     page = Nokogiri::HTML(open(url))
     page.xpath('//div[@id="diagram-pannel"]/table/tr[@class="l2"]/th[@class="hour"]').each do |hour_list|
       hour = remove_tab_and_newline(hour_list.text)
+      specified_time = %w(00 01 02).include?(hour) ? @specified_time.tomorrow : @specified_time
 
-      bus_time = Time.new(@specified_time.year, @specified_time.month, @specified_time.day, hour)
+      bus_time = Time.new(specified_time.year, specified_time.month, specified_time.day, hour)
       if over_date?
         # over_date(specified_timeが00時以降)の時
         # 00時未満の場合はnext
