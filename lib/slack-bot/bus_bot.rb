@@ -30,10 +30,13 @@ class BusBot < Bot
     # TODO: 南浦を除けるようにする
     res = buses.flatten.select { |bus| bus.time > @specified_time }.sort_by(&:time)[0...10]
 
-    # TODO: もうバスが無い場合はメッセージを返す
-    res_str = res.map do |bus|
-      "#{bus.time.strftime('%H:%M')} [#{bus.code}] #{bus.name}\n(#{bus.terminal_num}番乗り場 / 降車：#{bus.exit_stop})"
-    end.join("\n\n")
+    res_str = if res.empty?
+                '※今日のバスはもうありません'
+              else
+                res.map do |bus|
+                  "#{bus.time.strftime('%H:%M')} [#{bus.code}] #{bus.name}\n(#{bus.terminal_num}番乗り場 / 降車：#{bus.exit_stop})"
+                end.join("\n\n")
+              end
 
     {text: res_str}.to_json
   end
