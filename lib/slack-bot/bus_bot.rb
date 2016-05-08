@@ -28,25 +28,31 @@ class BusBot < Bot
       buses << scrape_timetable(bus_list)
     end
     # TODO: 南浦を除けるようにする
-    res = buses.flatten.select { |bus| bus.time > @specified_time }.sort_by(&:time)[0...10]
+    res_buses = buses.flatten.select { |bus| bus.time > @specified_time }.sort_by(&:time)[0...10]
 
     headline_time = over_date? ? @specified_time.tomorrow : @specified_time
-    res_str = "*#{headline_time.strftime('%Y/%m/%d %H:%M')}以降のバス*\n\n"
-    res_str += if res.empty?
-                message = '※これ以降のバスはありません'
-                unless buses.flatten.empty?
-                  message += "\n(最終 : #{buses.flatten.max_by(&:time).time.strftime('%H:%M')})"
-                end
-                message
-              else
-                res.map do |bus|
-                  bus_str = "#{bus.time.strftime('%H:%M')} [#{bus.code}] #{bus.name}\n(#{bus.terminal_num}番乗り場 / 降車：#{bus.exit_stop})"
-                  bus_str += "\n※深夜バス（倍額）" if bus.midnight
-                  bus_str
-                end.join("\n\n")
-              end
+    res_header = "*#{headline_time.strftime('%Y/%m/%d %H:%M')}以降のバス*\n\n"
+    res = if res_buses.empty?
+            message = '※これ以降のバスはありません'
+            unless buses.flatten.empty?
+              message += "\n(最終 : #{buses.flatten.max_by(&:time).time.strftime('%H:%M')})"
+            end
+            [{ text: message }]
+          else
+            res_buses.map do |bus|
+              text = "(#{bus.terminal_num}番乗り場 / 降車：#{bus.exit_stop})"
+              text += "\n※深夜バス（倍額）" if bus.midnight
+              {
+                title: "#{bus.time.strftime('%H:%M')} [#{bus.code}] #{bus.name}",
+                text: text
+              }
+            end
+          end
 
-    { text: res_str }.to_json
+    {
+      text: res_header,
+      attachments: res
+    }.to_json
   end
 
   def scrape_timetable(bus_list)
