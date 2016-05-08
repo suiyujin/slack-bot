@@ -40,7 +40,9 @@ class BusBot < Bot
                 message
               else
                 res.map do |bus|
-                  "#{bus.time.strftime('%H:%M')} [#{bus.code}] #{bus.name}\n(#{bus.terminal_num}番乗り場 / 降車：#{bus.exit_stop})"
+                  bus_str = "#{bus.time.strftime('%H:%M')} [#{bus.code}] #{bus.name}\n(#{bus.terminal_num}番乗り場 / 降車：#{bus.exit_stop})"
+                  bus_str += "\n※深夜バス（倍額）" if bus.midnight
+                  bus_str
                 end.join("\n\n")
               end
 
