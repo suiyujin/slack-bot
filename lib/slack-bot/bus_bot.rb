@@ -80,7 +80,7 @@ class BusBot < Bot
         midnight = false
 
         mark = remove_tab_and_newline(minute.xpath('div[@class="mark"]/div[@class="top"]').text)
-        if mark.match(/\A深(.)/)
+        if mark.match(/\A深(.+)/)
           midnight, mark = [true, $1]
         end
 
