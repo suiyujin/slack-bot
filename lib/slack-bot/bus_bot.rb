@@ -46,7 +46,7 @@ class BusBot < Bot
                 end.join("\n\n")
               end
 
-    {text: res_str}.to_json
+    { text: res_str }.to_json
   end
 
   def scrape_timetable(bus_list)
