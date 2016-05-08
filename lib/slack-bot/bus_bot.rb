@@ -27,11 +27,13 @@ class BusBot < Bot
     bus_lists.each do |bus_list|
       buses << scrape_timetable(bus_list)
     end
-    # TODO: 南浦を除けるようにする
-    res_buses = buses.flatten.select { |bus| bus.time > @specified_time }.sort_by(&:time)[0...10]
 
-    headline_time = over_date? ? @specified_time.tomorrow : @specified_time
-    res_header = "*#{headline_time.strftime('%Y/%m/%d %H:%M')}以降のバス*\n\n"
+    specified_time = over_date? ? @specified_time.tomorrow : @specified_time
+
+    # TODO: 南浦を除けるようにする
+    res_buses = buses.flatten.select { |bus| bus.time > specified_time }.sort_by(&:time)[0...10]
+
+    res_header = "*#{specified_time.strftime('%Y/%m/%d %H:%M')}以降のバス*\n\n"
     res = if res_buses.empty?
             message = '※これ以降のバスはありません'
             unless buses.flatten.empty?
