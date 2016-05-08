@@ -22,7 +22,8 @@ class BusBot < Bot
       @date_flag = 'wkd'
     end
 
-    bus_lists = YAML.load_file("#{File.expand_path(File.dirname(__FILE__)).sub(/lib\/slack-bot/, 'config')}/bus.yml")['bus_lists']
+    config_bus = YAML.load_file("#{File.expand_path(File.dirname(__FILE__)).sub(/lib\/slack-bot/, 'config')}/bus.yml")
+    bus_lists = config_bus['bus_lists']
     buses = []
     bus_lists.each do |bus_list|
       buses << scrape_timetable(bus_list)
@@ -33,7 +34,7 @@ class BusBot < Bot
     # TODO: 南浦を除けるようにする
     res_buses = buses.flatten.select { |bus| bus.time > specified_time }.sort_by(&:time)[0...10]
 
-    res_header = "*#{specified_time.strftime('%Y/%m/%d %H:%M')}以降のバス*\n\n"
+    res_header = "*#{specified_time.strftime('%Y/%m/%d %H:%M')}以降のバス*\n#{config_bus['map_bus_mitaka_image_url']}\n\n"
     res = if res_buses.empty?
             message = '※これ以降のバスはありません'
             unless buses.flatten.empty?
@@ -54,13 +55,14 @@ class BusBot < Bot
             ]
           else
             res_buses.map do |bus|
-              text = "(#{bus.terminal_num}番乗り場 / 降車：#{bus.exit_stop})"
-              text += "\n※深夜バス（倍額）" if bus.midnight
+              text = "( *#{bus.terminal_num}* 番乗り場 / 降車： *#{bus.exit_stop}* )"
+              text += "\n`※深夜バス(倍額)`" if bus.midnight
               {
                 title: "#{bus.time.strftime('%H:%M')} [#{bus.code}] #{bus.name}",
                 title_link: bus.link,
                 text: text,
-                color: bus.color
+                color: bus.color,
+                mrkdwn_in: ['text']
               }
             end
           end
