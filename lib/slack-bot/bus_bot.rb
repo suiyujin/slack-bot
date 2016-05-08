@@ -30,7 +30,8 @@ class BusBot < Bot
     # TODO: 南浦を除けるようにする
     res = buses.flatten.select { |bus| bus.time > @specified_time }.sort_by(&:time)[0...10]
 
-    res_str = "*#{@specified_time.strftime('%Y/%m/%d %H:%M')}以降のバス*\n\n"
+    headline_time = over_date? ? @specified_time.tomorrow : @specified_time
+    res_str = "*#{headline_time.strftime('%Y/%m/%d %H:%M')}以降のバス*\n\n"
     res_str += if res.empty?
                 message = '※これ以降のバスはありません'
                 unless buses.flatten.empty?
