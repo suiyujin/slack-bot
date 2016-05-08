@@ -39,7 +39,19 @@ class BusBot < Bot
             unless buses.flatten.empty?
               message += "\n(最終 : #{buses.flatten.max_by(&:time).time.strftime('%H:%M')})"
             end
-            [{ text: message }]
+            [
+              { text: message },
+              buses.flatten.sort_by(&:time)[1...10].map do |bus|
+                text = "(#{bus.terminal_num}番乗り場 / 降車：#{bus.exit_stop})"
+                text += "\n※深夜バス（倍額）" if bus.midnight
+                {
+                  title: "#{bus.time.strftime('%H:%M')} [#{bus.code}] #{bus.name}",
+                  title_link: bus.link,
+                  text: text,
+                  color: bus.color
+                }
+              end
+            ]
           else
             res_buses.map do |bus|
               text = "(#{bus.terminal_num}番乗り場 / 降車：#{bus.exit_stop})"
