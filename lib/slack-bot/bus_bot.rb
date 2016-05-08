@@ -31,7 +31,7 @@ class BusBot < Bot
     res = buses.flatten.select { |bus| bus.time > @specified_time }.sort_by(&:time)[0...10]
 
     res_str = if res.empty?
-                '※今日のバスはもうありません'
+                '※これ以降のバスはありません'
               else
                 res.map do |bus|
                   "#{bus.time.strftime('%H:%M')} [#{bus.code}] #{bus.name}\n(#{bus.terminal_num}番乗り場 / 降車：#{bus.exit_stop})"
