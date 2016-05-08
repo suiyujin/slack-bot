@@ -78,15 +78,16 @@ class BusBot < Bot
 
         mm = remove_tab_and_newline(minute.xpath('div[@class="mm"]').text)
 
-        bus_time = bus_time + mm.to_i.minutes
+        time = bus_time + mm.to_i.minutes
 
         bus_type = bus_list['types'].find { |bus| bus['mark'] == mark }
+
         Bus.new(
           bus_list['code'],
           bus_list['terminal_num'],
           bus_type,
           mark,
-          bus_time,
+          time,
           midnight
         )
       end
