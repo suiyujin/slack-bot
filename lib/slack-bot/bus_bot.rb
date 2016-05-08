@@ -113,6 +113,9 @@ class BusBot < Bot
                          end
       hour, minute = @text.match(/(\d{2}):(\d{2})/) ? [$1, $2] : [now.hour, now.min]
 
+      # 00:00〜02:59の場合は前の日とする
+      day = day.to_i - 1 if [0, 1, 2].include?(hour.to_i)
+
       Time.new(year, month, day, hour, minute)
     else
       now
