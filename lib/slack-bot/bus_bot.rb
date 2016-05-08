@@ -44,6 +44,7 @@ class BusBot < Bot
               text += "\n※深夜バス（倍額）" if bus.midnight
               {
                 title: "#{bus.time.strftime('%H:%M')} [#{bus.code}] #{bus.name}",
+                title_link: bus.link,
                 text: text
               }
             end
@@ -90,6 +91,7 @@ class BusBot < Bot
         midnight, mark = [true, $1] if mark.match(/\A深(.+)/)
 
         mm = remove_tab_and_newline(minute.xpath('div[@class="mm"]').text)
+        link = (URI.parse(url) + minute.xpath('div[@class="mm"]/a/@href').first.value).to_s
 
         time = bus_time + mm.to_i.minutes
 
@@ -101,7 +103,8 @@ class BusBot < Bot
           bus_type,
           mark,
           time,
-          midnight
+          midnight,
+          link
         )
       end
     end
