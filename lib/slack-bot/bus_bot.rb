@@ -10,7 +10,7 @@ require 'holiday_japan'
 
 class BusBot < Bot
   def create_response
-    @specified_time = check_time_description
+    @specified_time = check_datetime_description
 
     # 平日or土曜or日祝を判断
     @date_flag = ''
@@ -101,12 +101,17 @@ class BusBot < Bot
 
   private
 
-  def check_time_description
-    if !@text.strip.sub(/#{@trigger_word}/, '').empty? && @text.match(/(\d{2}):(\d{2})/)
-      today = Date.today
-      Time.new(today.year, today.month, today.day, $1, $2)
-    else
-      Time.now
+  def check_datetime_description
+    now = Time.now
+    unless @text.strip.sub(/#{@trigger_word}/, '').empty?
+      year, month, day = if @text.match(/(\d{4}?)\/?(\d{1,2})\/(\d{1,2})/)
+                           $1.empty? ? [now.year, $2, $3] : [$1, $2, $3]
+                         else
+                           [now.year, now.month, now.day]
+                         end
+      hour, minute = @text.match(/(\d{2}):(\d{2})/) ? [$1, $2] : [now.hour, now.min]
+
+      Time.new(year, month, day, hour, minute)
     end
   end
 
