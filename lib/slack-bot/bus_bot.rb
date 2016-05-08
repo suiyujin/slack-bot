@@ -46,7 +46,7 @@ class BusBot < Bot
                 mrkdwn_in: ['text']
               }
             ]
-            res_ary + buses.flatten.sort_by(&:time)[1...10].map do |bus|
+            res_ary + buses.flatten.sort_by(&:time)[0...10].map do |bus|
               text = "(#{bus.terminal_num}番乗り場 / 降車：#{bus.exit_stop})"
               text += "\n※深夜バス（倍額）" if bus.midnight
               {
