@@ -102,7 +102,7 @@ class BusBot < Bot
   private
 
   def check_time_description
-    if !@text.strip.sub(/バス/, '').empty? && @text.match(/(\d{2}):(\d{2})/)
+    if !@text.strip.sub(/#{@trigger_word}/, '').empty? && @text.match(/(\d{2}):(\d{2})/)
       today = Date.today
       Time.new(today.year, today.month, today.day, $1, $2)
     else

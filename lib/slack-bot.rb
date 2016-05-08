@@ -14,8 +14,8 @@ class SlackBot < Sinatra::Base
 
   def get_instance
     case params['trigger_word']
-    when 'バス' then
-      BusBot.new(params['text'])
+    when 'バス', 'ばす', 'bus', 'バ', 'ば', 'b' then
+      BusBot.new(params['text'], params['trigger_word'])
     end
   end
 end
