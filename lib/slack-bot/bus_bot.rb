@@ -45,7 +45,8 @@ class BusBot < Bot
               {
                 title: "#{bus.time.strftime('%H:%M')} [#{bus.code}] #{bus.name}",
                 title_link: bus.link,
-                text: text
+                text: text,
+                color: bus.color
               }
             end
           end
@@ -100,6 +101,7 @@ class BusBot < Bot
         Bus.new(
           bus_list['code'],
           bus_list['terminal_num'],
+          bus_list['color'],
           bus_type,
           mark,
           time,
