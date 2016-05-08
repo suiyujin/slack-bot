@@ -41,13 +41,14 @@ class BusBot < Bot
             [{ text: message }]
           else
             res_buses.map do |bus|
-              text = "(#{bus.terminal_num}番乗り場 / 降車：#{bus.exit_stop})"
-              text += "\n※深夜バス（倍額）" if bus.midnight
+              text = "( *#{bus.terminal_num}* 番乗り場 / 降車： *#{bus.exit_stop}* )"
+              text += "\n`※深夜バス(倍額)`" if bus.midnight
               {
                 title: "#{bus.time.strftime('%H:%M')} [#{bus.code}] #{bus.name}",
                 title_link: bus.link,
                 text: text,
-                color: bus.color
+                color: bus.color,
+                mrkdwn_in: ['text']
               }
             end
           end
