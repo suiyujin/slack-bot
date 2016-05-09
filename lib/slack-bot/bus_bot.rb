@@ -122,7 +122,7 @@ class BusBot < Bot
                          else
                            [now.year, now.month, now.day]
                          end
-      hour, minute = @text.match(/(\d{2}):(\d{2})/) ? [$1, $2] : [now.hour, now.min]
+      hour, minute = @text.match(/(\d{1,2}):(\d{2})/) ? [$1, $2] : [now.hour, now.min]
 
       time = Time.new(year, month, day, hour, minute)
 
