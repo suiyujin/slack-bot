@@ -1,7 +1,6 @@
 require "#{File.expand_path(File.dirname(__FILE__))}/slack-bot/bus_bot"
 require 'rubygems'
 require 'sinatra/base'
-require 'pry'
 require 'json'
 
 class SlackBot < Sinatra::Base

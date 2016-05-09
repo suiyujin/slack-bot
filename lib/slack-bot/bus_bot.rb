@@ -9,11 +9,13 @@ require 'active_support/core_ext'
 require 'holiday_japan'
 
 class BusBot < Bot
-  def create_response
+  def initialize(text, trigger_word)
+    super
+
     @specified_time = check_datetime_description
 
-    # 平日or土曜or日祝を判断
     @date_flag = ''
+    # 平日or土曜or日祝を判断
     if HolidayJapan.check(Date.parse(@specified_time.to_s)) || @specified_time.sunday?
       @date_flag = 'snd'
     elsif @specified_time.saturday?
@@ -21,13 +23,11 @@ class BusBot < Bot
     else
       @date_flag = 'wkd'
     end
+  end
 
+  def create_response
     config_bus = YAML.load_file("#{File.expand_path(File.dirname(__FILE__)).sub(/lib\/slack-bot/, 'config')}/bus.yml")
-    bus_lists = config_bus['bus_lists']
-    buses = []
-    bus_lists.each do |bus_list|
-      buses << scrape_timetable(bus_list)
-    end
+    buses = config_bus['bus_lists'].map { |bus_list| scrape_timetable(bus_list) }
 
     specified_time = over_date? ? @specified_time.tomorrow : @specified_time
 
@@ -37,9 +37,8 @@ class BusBot < Bot
     res_header = "*#{specified_time.strftime('%Y/%m/%d %H:%M')}以降のバス*\n#{config_bus['map_bus_mitaka_image_url']}\n\n"
     res = if res_buses.empty?
             message = '*※これ以降のバスはありません*'
-            unless buses.flatten.empty?
-              message += "\n(最終 : #{buses.flatten.max_by(&:time).time.strftime('%H:%M')})"
-            end
+            message += "\n(最終 : #{buses.flatten.max_by(&:time).time.strftime('%H:%M')})" unless buses.flatten.empty?
+
             [
               {
                 text: message,
@@ -56,17 +55,14 @@ class BusBot < Bot
     }.to_json
   end
 
+  private
+
   def scrape_timetable(bus_list)
     buses = []
 
-    orv_code = bus_list['orv_code']
-    course = bus_list['course']
-    stop_no = bus_list['stop_no']
+    url = "http://transfer.navitime.biz/odakyubus/pc/diagram/BusDiagram?orvCode=#{bus_list['orv_code']}&course=#{bus_list['course']}&stopNo=#{bus_list['stop_no']}&date=#{@specified_time.strftime('%Y-%m-%d')}"
 
-    url = "http://transfer.navitime.biz/odakyubus/pc/diagram/BusDiagram?orvCode=#{orv_code}&course=#{course}&stopNo=#{stop_no}&date=#{@specified_time.strftime('%Y-%m-%d')}"
-
-    page = Nokogiri::HTML(open(url))
-    page.xpath('//div[@id="diagram-pannel"]/table/tr[@class="l2"]/th[@class="hour"]').each do |hour_list|
+    Nokogiri::HTML(open(url)).xpath('//div[@id="diagram-pannel"]/table/tr[@class="l2"]/th[@class="hour"]').each do |hour_list|
       hour = remove_tab_and_newline(hour_list.text)
       specified_time = %w(00 01 02).include?(hour) ? @specified_time.tomorrow : @specified_time
 
@@ -75,9 +71,7 @@ class BusBot < Bot
         # over_date(specified_timeが00時以降)の時
         # 00時未満の場合はnext
         # 00時以降&指定時間より前のhourの場合はnext
-        if !%w(00 01 02).include?(hour) || bus_time <= (@specified_time - 1.hour)
-          next
-        end
+        next if !%w(00 01 02).include?(hour) || bus_time <= (@specified_time - 1.hour)
       else
         # over_dateでない時
         # 指定時間より前のhourの場合はnext
@@ -90,29 +84,18 @@ class BusBot < Bot
         mark = remove_tab_and_newline(minute.xpath('div[@class="mark" or @class="mark threeString"]/div[@class="top"]').text)
         midnight, mark = [true, $1] if mark.match(/\A深(.+)/)
 
-        mm = remove_tab_and_newline(minute.xpath('div[@class="mm"]').text)
-        link = (URI.parse(url) + minute.xpath('div[@class="mm"]/a/@href').first.value).to_s
-
-        time = bus_time + mm.to_i.minutes
-
-        bus_type = bus_list['types'].find { |bus| bus['mark'] == mark }
-
         Bus.new(
-          bus_list['code'],
-          bus_list['terminal_num'],
-          bus_list['color'],
-          bus_type,
+          bus_list,
+          bus_list['types'].find { |bus| bus['mark'] == mark },
           mark,
-          time,
+          bus_time + remove_tab_and_newline(minute.xpath('div[@class="mm"]').text).to_i.minutes,
           midnight,
-          link
+          (URI.parse(url) + minute.xpath('div[@class="mm"]/a/@href').first.value).to_s
         )
       end
     end
     buses
   end
-
-  private
 
   def check_datetime_description
     now = Time.now

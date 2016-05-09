@@ -1,10 +1,10 @@
 class Bus
   attr_reader :time, :inspect
 
-  def initialize(code, terminal_num, color, bus_type, mark, time, midnight, link)
-    @code = code
-    @terminal_num = terminal_num
-    @color = color
+  def initialize(bus_list, bus_type, mark, time, midnight, link)
+    @code = bus_list['code']
+    @terminal_num = bus_list['terminal_num']
+    @color = bus_list['color']
     @name = bus_type['name']
     @exit_stop = bus_type['exit_stop']
     @mark = mark
