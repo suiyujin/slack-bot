@@ -117,7 +117,10 @@ class BusBot < Bot
   def check_datetime_description
     now = Time.now
     unless @text.strip.sub(/#{@trigger_word}/, '').empty?
-      year, month, day = if @text.match(/(\d{4}?)\/?(\d{1,2})\/(\d{1,2})/)
+      year, month, day = if @text.match(/(一昨日|昨日|今日|明日|明後日)/)
+                           ymd = now + (%w(一昨日 昨日 今日 明日 明後日).index($1) - 2).days
+                           [ymd.year, ymd.month, ymd.day]
+                         elsif @text.match(/(\d{4}?)\/?(\d{1,2})\/(\d{1,2})/)
                            $1.empty? ? [now.year, $2, $3] : [$1, $2, $3]
                          else
                            [now.year, now.month, now.day]
