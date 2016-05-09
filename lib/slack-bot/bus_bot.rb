@@ -130,10 +130,10 @@ class BusBot < Bot
       time = Time.new(year, month, day, hour, minute)
 
       # 00:00〜02:59の場合は前の日とする
-      [0, 1, 2].include?(hour.to_i) ? time.yesterday : time
+      between_0_and_2?(hour.to_i) ? time.yesterday : time
     else
       # 00:00〜02:59の場合は前の日とする
-      [0, 1, 2].include?(now.hour.to_i) ? now.yesterday : now
+      between_0_and_2?(now.hour.to_i) ? now.yesterday : now
     end
   end
 
@@ -153,6 +153,10 @@ class BusBot < Bot
   end
 
   def over_date?
-    [0, 1, 2].include?(@specified_time.hour)
+    between_0_and_2?(@specified_time.hour)
+  end
+
+  def between_0_and_2?(num)
+    [0, 1, 2].include?(num)
   end
 end
