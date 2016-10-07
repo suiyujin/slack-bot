@@ -5,16 +5,12 @@ require 'json'
 
 class SlackBot < Sinatra::Base
   post '/slack' do
-    bot = get_instance
+    bot = case params['trigger_word']
+    when 'バス', 'ばす', 'bus', 'バ', 'ば', 'ハ', 'は', 'b' then
+      BusBot::get_instance(params['text'], params['trigger_word'])
+    end
 
     content_type :json
     bot.create_response
-  end
-
-  def get_instance
-    case params['trigger_word']
-    when 'バス', 'ばす', 'bus', 'バ', 'ば', 'b' then
-      BusBot.new(params['text'], params['trigger_word'])
-    end
   end
 end
