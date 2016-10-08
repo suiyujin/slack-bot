@@ -9,6 +9,7 @@ GEM
       tzinfo (~> 1.1)
     byebug (8.2.5)
     coderay (1.1.1)
+    hiredis (0.6.1)
     holiday_japan (1.2.2)
     i18n (0.7.0)
     json (1.8.3)
@@ -32,6 +33,7 @@ GEM
     rack-protection (1.5.3)
       rack
     raindrops (0.16.0)
+    redis (3.3.1)
     sinatra (1.4.7)
       rack (~> 1.5)
       rack-protection (~> 1.4)
@@ -51,13 +53,15 @@ PLATFORMS
 
 DEPENDENCIES
   activesupport
+  hiredis
   holiday_japan
   nokogiri
   pry
   pry-byebug
   pry-doc
+  redis
   sinatra
   unicorn
 
 BUNDLED WITH
-   1.10.6
+   1.12.5
