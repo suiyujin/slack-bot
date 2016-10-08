@@ -52,6 +52,9 @@ class BusBot < Bot
 
     @specified_time = check_datetime_description
 
+    save_timetable_day = between_0_and_2?(@specified_time.hour) ? Time.now.yesterday.day : Time.now.day
+    @scrape_flag = (save_timetable_day != @specified_time.day)
+
     @date_flag = ''
     # 平日or土曜or日祝を判断
     if HolidayJapan.check(Date.parse(@specified_time.to_s)) || @specified_time.sunday?
@@ -66,6 +69,40 @@ class BusBot < Bot
   end
 
   def create_buses(bus_list)
+    @scrape_flag ? scrape_timetable(bus_list) : from_redis(bus_list)
+  end
+
+  def scrape_timetable(bus_list)
+    buses = []
+
+    url = "http://transfer.navitime.biz/odakyubus/pc/diagram/BusDiagram?orvCode=#{bus_list['orv_code']}&course=#{bus_list['course']}&stopNo=#{bus_list['stop_no']}&date=#{@specified_time.strftime('%Y-%m-%d')}"
+
+    Nokogiri::HTML(open(url)).xpath('//div[@id="diagram-pannel"]/table/tr[@class="l2"]/th[@class="hour"]').each do |hour_list|
+      hour = remove_tab_and_newline(hour_list.text)
+      specified_time = %w(00 01 02).include?(hour) ? @specified_time.tomorrow : @specified_time
+
+      bus_time = Time.new(specified_time.year, specified_time.month, specified_time.day, hour)
+
+      buses << get_date_list(hour_list).xpath('div[@class="diagram-item"]').map do |minute|
+        midnight = false
+
+        mark = remove_tab_and_newline(minute.xpath('div[@class="mark" or @class="mark threeString"]/div[@class="top"]').text)
+        midnight, mark = [true, $1] if mark.match(/\A深(.+)/)
+
+        Bus.new(
+          bus_list,
+          bus_list['types'].find { |bus| bus['mark'] == mark },
+          mark,
+          bus_time + remove_tab_and_newline(minute.xpath('div[@class="mm"]').text).to_i.minutes,
+          midnight,
+          (URI.parse(url) + minute.xpath('div[@class="mm"]/a/@href').first.value).to_s
+        )
+      end
+    end
+    buses
+  end
+
+  def from_redis(bus_list)
     bus_list['types'].map do |bus_type|
       find_key = "#{bus_list['code']}:#{bus_type['name']}:#{bus_list['terminal_num']}"
       @redis.lrange(find_key, 0, -1).map do |hour_min_midnight|
@@ -118,6 +155,21 @@ class BusBot < Bot
       # 00:00〜02:59の場合は前の日とする
       between_0_and_2?(now.hour.to_i) ? now.yesterday : now
     end
+  end
+
+  def get_date_list(hour_list)
+    case @date_flag
+    when 'wkd' then
+      hour_list.next.next
+    when 'std' then
+      hour_list.next.next.next.next
+    when 'snd' then
+      hour_list.next.next.next.next.next.next
+    end
+  end
+
+  def remove_tab_and_newline(text)
+    text.gsub(/\t/, '').gsub(/\n/, '')
   end
 
   def over_date?
