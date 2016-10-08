@@ -7,6 +7,8 @@ require 'yaml'
 require 'active_support'
 require 'active_support/core_ext'
 require 'holiday_japan'
+require 'redis'
+require 'cgi'
 
 class BusBot < Bot
   def self.get_instance(text, trigger_word)
@@ -15,12 +17,12 @@ class BusBot < Bot
 
   def create_response
     config_bus = YAML.load_file("#{File.expand_path(File.dirname(__FILE__)).sub(/lib\/slack-bot/, 'config')}/bus.yml")
-    buses = config_bus['bus_lists'].map { |bus_list| scrape_timetable(bus_list) }
+    buses = config_bus['bus_lists'].map { |bus_list| create_buses(bus_list) }
 
     specified_time = over_date? ? @specified_time.tomorrow : @specified_time
 
     # TODO: 南浦を除けるようにする
-    res_buses = buses.flatten.select { |bus| bus.time > specified_time }.sort_by(&:time)[0...10]
+    res_buses = buses.flatten.compact.select { |bus| bus.time > specified_time }.sort_by(&:time)[0...10]
 
     res_header = "*#{specified_time.strftime('%Y/%m/%d %H:%M')}以降のバス*\n#{config_bus['map_bus_mitaka_image_url']}\n\n"
     res = if res_buses.empty?
@@ -59,46 +61,40 @@ class BusBot < Bot
     else
       @date_flag = 'wkd'
     end
+
+    @redis = Redis.new(driver: :hiredis)
   end
 
-  def scrape_timetable(bus_list)
-    buses = []
+  def create_buses(bus_list)
+    bus_list['types'].map do |bus_type|
+      find_key = "#{bus_list['code']}:#{bus_type['name']}:#{bus_list['terminal_num']}"
+      @redis.lrange(find_key, 0, -1).map do |hour_min_midnight|
+        hour, minute, mark, link, midnight = hour_min_midnight.split(':')
+        midnight = !midnight.nil?
+        specified_time = %w(00 01 02).include?(hour) ? @specified_time.tomorrow : @specified_time
 
-    url = "http://transfer.navitime.biz/odakyubus/pc/diagram/BusDiagram?orvCode=#{bus_list['orv_code']}&course=#{bus_list['course']}&stopNo=#{bus_list['stop_no']}&date=#{@specified_time.strftime('%Y-%m-%d')}"
-
-    Nokogiri::HTML(open(url)).xpath('//div[@id="diagram-pannel"]/table/tr[@class="l2"]/th[@class="hour"]').each do |hour_list|
-      hour = remove_tab_and_newline(hour_list.text)
-      specified_time = %w(00 01 02).include?(hour) ? @specified_time.tomorrow : @specified_time
-
-      bus_time = Time.new(specified_time.year, specified_time.month, specified_time.day, hour)
-      if over_date?
-        # over_date(specified_timeが00時以降)の時
-        # 00時未満の場合はnext
-        # 00時以降&指定時間より前のhourの場合はnext
-        next if !%w(00 01 02).include?(hour) || bus_time <= (@specified_time - 1.hour)
-      else
-        # over_dateでない時
-        # 指定時間より前のhourの場合はnext
-        next if bus_time <= (@specified_time - 1.hour)
-      end
-
-      buses << get_date_list(hour_list).xpath('div[@class="diagram-item"]').map do |minute|
-        midnight = false
-
-        mark = remove_tab_and_newline(minute.xpath('div[@class="mark" or @class="mark threeString"]/div[@class="top"]').text)
-        midnight, mark = [true, $1] if mark.match(/\A深(.+)/)
+        bus_time = Time.new(specified_time.year, specified_time.month, specified_time.day, hour)
+        if over_date?
+          # over_date(specified_timeが00時以降)の時
+          # 00時未満の場合はnext
+          # 00時以降&指定時間より前のhourの場合はnext
+          next if !%w(00 01 02).include?(hour) || bus_time <= (@specified_time - 1.hour)
+        else
+          # over_dateでない時
+          # 指定時間より前のhourの場合はnext
+          next if bus_time <= (@specified_time - 1.hour)
+        end
 
         Bus.new(
           bus_list,
-          bus_list['types'].find { |bus| bus['mark'] == mark },
+          bus_type,
           mark,
-          bus_time + remove_tab_and_newline(minute.xpath('div[@class="mm"]').text).to_i.minutes,
+          bus_time + minute.to_i.minutes,
           midnight,
-          (URI.parse(url) + minute.xpath('div[@class="mm"]/a/@href').first.value).to_s
+          CGI.unescape(link)
         )
       end
     end
-    buses
   end
 
   def check_datetime_description
@@ -122,21 +118,6 @@ class BusBot < Bot
       # 00:00〜02:59の場合は前の日とする
       between_0_and_2?(now.hour.to_i) ? now.yesterday : now
     end
-  end
-
-  def get_date_list(hour_list)
-    case @date_flag
-    when 'wkd' then
-      hour_list.next.next
-    when 'std' then
-      hour_list.next.next.next.next
-    when 'snd' then
-      hour_list.next.next.next.next.next.next
-    end
-  end
-
-  def remove_tab_and_newline(text)
-    text.gsub(/\t/, '').gsub(/\n/, '')
   end
 
   def over_date?
