@@ -9,20 +9,8 @@ require 'active_support/core_ext'
 require 'holiday_japan'
 
 class BusBot < Bot
-  def initialize(text, trigger_word)
-    super
-
-    @specified_time = check_datetime_description
-
-    @date_flag = ''
-    # 平日or土曜or日祝を判断
-    if HolidayJapan.check(Date.parse(@specified_time.to_s)) || @specified_time.sunday?
-      @date_flag = 'snd'
-    elsif @specified_time.saturday?
-      @date_flag = 'std'
-    else
-      @date_flag = 'wkd'
-    end
+  def self.get_instance(text, trigger_word)
+    self.new(text, trigger_word)
   end
 
   def create_response
@@ -56,6 +44,22 @@ class BusBot < Bot
   end
 
   private
+
+  def initialize(text, trigger_word)
+    super
+
+    @specified_time = check_datetime_description
+
+    @date_flag = ''
+    # 平日or土曜or日祝を判断
+    if HolidayJapan.check(Date.parse(@specified_time.to_s)) || @specified_time.sunday?
+      @date_flag = 'snd'
+    elsif @specified_time.saturday?
+      @date_flag = 'std'
+    else
+      @date_flag = 'wkd'
+    end
+  end
 
   def scrape_timetable(bus_list)
     buses = []
