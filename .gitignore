@@ -53,3 +53,4 @@ build-iPhoneSimulator/
 config/
 log/
 images/
+dump.rdb

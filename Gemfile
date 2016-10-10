@@ -10,3 +10,6 @@ gem 'unicorn'
 gem 'nokogiri'
 gem 'activesupport'
 gem 'holiday_japan'
+
+gem 'redis'
+gem 'hiredis'

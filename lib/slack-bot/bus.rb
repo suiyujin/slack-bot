@@ -1,3 +1,5 @@
+require 'cgi'
+
 class Bus
   attr_reader :time, :inspect
 
@@ -24,5 +26,14 @@ class Bus
       color: @color,
       mrkdwn_in: ['text']
     }
+  end
+
+  def redis_key
+    "#{@code}:#{@name}:#{@terminal_num}"
+  end
+
+  def redis_value
+    info = "#{@time.strftime('%R')}:#{@mark}:#{CGI.escape(@link)}"
+    @midnight ? "#{info}:深" : info
   end
 end

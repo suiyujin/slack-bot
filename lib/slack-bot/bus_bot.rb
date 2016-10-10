@@ -7,6 +7,8 @@ require 'yaml'
 require 'active_support'
 require 'active_support/core_ext'
 require 'holiday_japan'
+require 'redis'
+require 'cgi'
 
 class BusBot < Bot
   def self.get_instance(text, trigger_word)
@@ -15,12 +17,12 @@ class BusBot < Bot
 
   def create_response
     config_bus = YAML.load_file("#{File.expand_path(File.dirname(__FILE__)).sub(/lib\/slack-bot/, 'config')}/bus.yml")
-    buses = config_bus['bus_lists'].map { |bus_list| scrape_timetable(bus_list) }
+    buses = config_bus['bus_lists'].map { |bus_list| create_buses(bus_list) }
 
     specified_time = over_date? ? @specified_time.tomorrow : @specified_time
 
     # TODO: 南浦を除けるようにする
-    res_buses = buses.flatten.select { |bus| bus.time > specified_time }.sort_by(&:time)[0...10]
+    res_buses = buses.flatten.compact.select { |bus| bus.time > specified_time }.sort_by(&:time)[0...10]
 
     res_header = "*#{specified_time.strftime('%Y/%m/%d %H:%M')}以降のバス*\n#{config_bus['map_bus_mitaka_image_url']}\n\n"
     res = if res_buses.empty?
@@ -50,6 +52,9 @@ class BusBot < Bot
 
     @specified_time = check_datetime_description
 
+    save_timetable_day = between_0_and_2?(@specified_time.hour) ? Time.now.yesterday.day : Time.now.day
+    @scrape_flag = (save_timetable_day != @specified_time.day)
+
     @date_flag = ''
     # 平日or土曜or日祝を判断
     if HolidayJapan.check(Date.parse(@specified_time.to_s)) || @specified_time.sunday?
@@ -59,6 +64,12 @@ class BusBot < Bot
     else
       @date_flag = 'wkd'
     end
+
+    @redis = Redis.new(driver: :hiredis)
+  end
+
+  def create_buses(bus_list)
+    @scrape_flag ? scrape_timetable(bus_list) : from_redis(bus_list)
   end
 
   def scrape_timetable(bus_list)
@@ -71,16 +82,6 @@ class BusBot < Bot
       specified_time = %w(00 01 02).include?(hour) ? @specified_time.tomorrow : @specified_time
 
       bus_time = Time.new(specified_time.year, specified_time.month, specified_time.day, hour)
-      if over_date?
-        # over_date(specified_timeが00時以降)の時
-        # 00時未満の場合はnext
-        # 00時以降&指定時間より前のhourの場合はnext
-        next if !%w(00 01 02).include?(hour) || bus_time <= (@specified_time - 1.hour)
-      else
-        # over_dateでない時
-        # 指定時間より前のhourの場合はnext
-        next if bus_time <= (@specified_time - 1.hour)
-      end
 
       buses << get_date_list(hour_list).xpath('div[@class="diagram-item"]').map do |minute|
         midnight = false
@@ -99,6 +100,38 @@ class BusBot < Bot
       end
     end
     buses
+  end
+
+  def from_redis(bus_list)
+    bus_list['types'].map do |bus_type|
+      find_key = "#{bus_list['code']}:#{bus_type['name']}:#{bus_list['terminal_num']}"
+      @redis.lrange(find_key, 0, -1).map do |hour_min_midnight|
+        hour, minute, mark, link, midnight = hour_min_midnight.split(':')
+        midnight = !midnight.nil?
+        specified_time = %w(00 01 02).include?(hour) ? @specified_time.tomorrow : @specified_time
+
+        bus_time = Time.new(specified_time.year, specified_time.month, specified_time.day, hour)
+        if over_date?
+          # over_date(specified_timeが00時以降)の時
+          # 00時未満の場合はnext
+          # 00時以降&指定時間より前のhourの場合はnext
+          next if !%w(00 01 02).include?(hour) || bus_time <= (@specified_time - 1.hour)
+        else
+          # over_dateでない時
+          # 指定時間より前のhourの場合はnext
+          next if bus_time <= (@specified_time - 1.hour)
+        end
+
+        Bus.new(
+          bus_list,
+          bus_type,
+          mark,
+          bus_time + minute.to_i.minutes,
+          midnight,
+          CGI.unescape(link)
+        )
+      end
+    end
   end
 
   def check_datetime_description
