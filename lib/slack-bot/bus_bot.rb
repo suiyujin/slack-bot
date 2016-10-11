@@ -147,16 +147,19 @@ class BusBot < Bot
   end
 
   def check_datetime_description(now)
-    unless @text.strip.sub(/#{@trigger_word}/, '').empty?
-      year, month, day = if @text.match(/(一昨日|昨日|今日|明日|明後日)/)
+    text = @text.dup
+    unless text.strip.sub(/#{@trigger_word}/, '').empty?
+      year, month, day = if matches = text.match(/(一昨日|昨日|今日|明日|明後日)/)
                            ymd = now + (%w(一昨日 昨日 今日 明日 明後日).index($1) - 2).days
                            [ymd.year, ymd.month, ymd.day]
-                         elsif @text.match(/(\d{4}?)\/?(\d{1,2})\/(\d{1,2})/)
+                         elsif matches = text.match(/(\d{4}?)\/?(\d{1,2})\/(\d{1,2})/)
                            $1.empty? ? [now.year, $2, $3] : [$1, $2, $3]
                          else
                            [now.year, now.month, now.day]
                          end
-      hour, minute = @text.match(/(\d{1,2}):(\d{2})/) ? [$1, $2] : [now.hour, now.min]
+      # 時刻以外のマッチ文字列を削除
+      matches.to_a.drop(1).each { |m| text.slice!(m) }
+      hour, minute = text.match(/(\d{1,2}):?(\d{2})/) ? [$1, $2] : [now.hour, now.min]
 
       time = Time.new(year, month, day, hour, minute)
 
