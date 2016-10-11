@@ -53,7 +53,7 @@ class BusBot < Bot
     now = Time.now
     @specified_time = check_datetime_description(now)
 
-    @use_redis_flag = if between_0_and_2?(now.hour)
+    @use_redis = if between_0_and_2?(now.hour)
                         if between_0_and_2?(@specified_time.hour)
                           @specified_time.day == now.day
                         else
@@ -81,7 +81,7 @@ class BusBot < Bot
   end
 
   def create_buses(bus_list)
-    @use_redis_flag ? from_redis(bus_list) : scrape_timetable(bus_list)
+    @use_redis ? from_redis(bus_list) : scrape_timetable(bus_list)
   end
 
   def scrape_timetable(bus_list)
