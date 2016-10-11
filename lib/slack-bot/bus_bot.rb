@@ -50,10 +50,22 @@ class BusBot < Bot
   def initialize(text, trigger_word)
     super
 
-    @specified_time = check_datetime_description
+    now = Time.now
+    @specified_time = check_datetime_description(now)
 
-    save_timetable_day = between_0_and_2?(@specified_time.hour) ? Time.now.yesterday.day : Time.now.day
-    @scrape_flag = (save_timetable_day != @specified_time.day)
+    @use_redis_flag = if between_0_and_2?(now.hour)
+                        if between_0_and_2?(@specified_time.hour)
+                          @specified_time.day == now.day
+                        else
+                          @specified_time.day == now.yesterday.day
+                        end
+                      else
+                        if between_0_and_2?(@specified_time.hour)
+                          @specified_time.day == now.tomorrow.day
+                        else
+                          @specified_time.day == now.day
+                        end
+                      end
 
     @date_flag = ''
     # 平日or土曜or日祝を判断
@@ -69,7 +81,7 @@ class BusBot < Bot
   end
 
   def create_buses(bus_list)
-    @scrape_flag ? scrape_timetable(bus_list) : from_redis(bus_list)
+    @use_redis_flag ? from_redis(bus_list) : scrape_timetable(bus_list)
   end
 
   def scrape_timetable(bus_list)
@@ -134,18 +146,20 @@ class BusBot < Bot
     end
   end
 
-  def check_datetime_description
-    now = Time.now
-    unless @text.strip.sub(/#{@trigger_word}/, '').empty?
-      year, month, day = if @text.match(/(一昨日|昨日|今日|明日|明後日)/)
+  def check_datetime_description(now)
+    text = @text.dup
+    unless text.strip.sub(/#{@trigger_word}/, '').empty?
+      year, month, day = if matches = text.match(/(一昨日|昨日|今日|明日|明後日)/)
                            ymd = now + (%w(一昨日 昨日 今日 明日 明後日).index($1) - 2).days
                            [ymd.year, ymd.month, ymd.day]
-                         elsif @text.match(/(\d{4}?)\/?(\d{1,2})\/(\d{1,2})/)
+                         elsif matches = text.match(/(\d{4}?)\/?(\d{1,2})\/(\d{1,2})/)
                            $1.empty? ? [now.year, $2, $3] : [$1, $2, $3]
                          else
                            [now.year, now.month, now.day]
                          end
-      hour, minute = @text.match(/(\d{1,2}):(\d{2})/) ? [$1, $2] : [now.hour, now.min]
+      # 時刻以外のマッチ文字列を削除
+      matches.to_a.drop(1).each { |m| text.slice!(m) }
+      hour, minute = text.match(/(\d{1,2}):?(\d{2})/) ? [$1, $2] : [now.hour, now.min]
 
       time = Time.new(year, month, day, hour, minute)
 
