@@ -29,7 +29,7 @@ class Bus
   end
 
   def redis_key
-    "#{@code}:#{@name}:#{@terminal_num}"
+    "バス:#{@code}:#{@name}:#{@terminal_num}"
   end
 
   def redis_value

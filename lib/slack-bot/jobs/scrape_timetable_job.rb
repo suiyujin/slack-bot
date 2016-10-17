@@ -32,7 +32,9 @@ class ScrapeTimetableJob
     buses = config_bus['bus_lists'].map { |bus_list| scrape_timetable(bus_list) }.flatten
 
     redis = Redis.new(driver: :hiredis)
-    redis.flushall
+    buskeys = redis.keys('バス:*')
+    redis.del(buskeys) unless buskeys.empty?
+
     buses.each { |bus| redis.rpush(bus.redis_key, bus.redis_value) }
   end
 
