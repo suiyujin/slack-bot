@@ -116,7 +116,7 @@ class BusBot < Bot
 
   def from_redis(bus_list)
     bus_list['types'].map do |bus_type|
-      find_key = "#{bus_list['code']}:#{bus_type['name']}:#{bus_list['terminal_num']}"
+      find_key = "バス:#{bus_list['code']}:#{bus_type['name']}:#{bus_list['terminal_num']}"
       @redis.lrange(find_key, 0, -1).map do |hour_min_midnight|
         hour, minute, mark, link, midnight = hour_min_midnight.split(':')
         midnight = !midnight.nil?
