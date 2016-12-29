@@ -54,18 +54,18 @@ class BusBot < Bot
     @specified_time = check_datetime_description(now)
 
     @use_redis = if between_0_and_2?(now.hour)
-                        if between_0_and_2?(@specified_time.hour)
-                          @specified_time.day == now.day
-                        else
-                          @specified_time.day == now.yesterday.day
-                        end
-                      else
-                        if between_0_and_2?(@specified_time.hour)
-                          @specified_time.day == now.tomorrow.day
-                        else
-                          @specified_time.day == now.day
-                        end
-                      end
+                   if between_0_and_2?(@specified_time.hour)
+                     @specified_time.day == now.day
+                   else
+                     @specified_time.day == now.yesterday.day
+                   end
+                 else
+                   if between_0_and_2?(@specified_time.hour)
+                     @specified_time.day == now.tomorrow.day
+                   else
+                     @specified_time.day == now.day
+                   end
+                 end
 
     @date_flag = ''
     # 平日or土曜or日祝を判断
