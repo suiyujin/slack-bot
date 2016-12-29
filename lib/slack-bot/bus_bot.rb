@@ -69,7 +69,11 @@ class BusBot < Bot
 
     @date_flag = ''
     # 平日or土曜or日祝を判断
-    if HolidayJapan.check(Date.parse(@specified_time.to_s)) || @specified_time.sunday?
+    # 12/30〜1/3は休日ダイヤ
+    if @specified_time.mon == 12 && @specified_time.day >= 30 ||
+       @specified_time.mon == 1 && @specified_time.day <= 3 ||
+       HolidayJapan.check(Date.parse(@specified_time.to_s)) ||
+       @specified_time.sunday?
       @date_flag = 'snd'
     elsif @specified_time.saturday?
       @date_flag = 'std'
