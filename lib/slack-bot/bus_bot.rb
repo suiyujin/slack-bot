@@ -54,22 +54,26 @@ class BusBot < Bot
     @specified_time = check_datetime_description(now)
 
     @use_redis = if between_0_and_2?(now.hour)
-                        if between_0_and_2?(@specified_time.hour)
-                          @specified_time.day == now.day
-                        else
-                          @specified_time.day == now.yesterday.day
-                        end
-                      else
-                        if between_0_and_2?(@specified_time.hour)
-                          @specified_time.day == now.tomorrow.day
-                        else
-                          @specified_time.day == now.day
-                        end
-                      end
+                   if between_0_and_2?(@specified_time.hour)
+                     @specified_time.day == now.day
+                   else
+                     @specified_time.day == now.yesterday.day
+                   end
+                 else
+                   if between_0_and_2?(@specified_time.hour)
+                     @specified_time.day == now.tomorrow.day
+                   else
+                     @specified_time.day == now.day
+                   end
+                 end
 
     @date_flag = ''
     # 平日or土曜or日祝を判断
-    if HolidayJapan.check(Date.parse(@specified_time.to_s)) || @specified_time.sunday?
+    # 12/30〜1/3は休日ダイヤ
+    if @specified_time.mon == 12 && @specified_time.day >= 30 ||
+       @specified_time.mon == 1 && @specified_time.day <= 3 ||
+       HolidayJapan.check(Date.parse(@specified_time.to_s)) ||
+       @specified_time.sunday?
       @date_flag = 'snd'
     elsif @specified_time.saturday?
       @date_flag = 'std'
