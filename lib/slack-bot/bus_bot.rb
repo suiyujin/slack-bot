@@ -70,8 +70,7 @@ class BusBot < Bot
     @date_flag = ''
     # 平日or土曜or日祝を判断
     # 12/30〜1/3は休日ダイヤ
-    if @specified_time.mon == 12 && @specified_time.day >= 30 ||
-       @specified_time.mon == 1 && @specified_time.day <= 3 ||
+    if new_year_holidays?(@specified_time) ||
        HolidayJapan.check(Date.parse(@specified_time.to_s)) ||
        @specified_time.sunday?
       @date_flag = 'snd'
@@ -196,5 +195,9 @@ class BusBot < Bot
 
   def between_0_and_2?(num)
     [0, 1, 2].include?(num)
+  end
+
+  def new_year_holidays?(time)
+    time.mon == 12 && time.day >= 30 || time.mon == 1 && time.day <= 3
   end
 end
